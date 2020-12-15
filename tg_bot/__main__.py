@@ -5,7 +5,8 @@ import requests
 from typing import Optional, List
 from parsel import Selector
 from urllib.request import urlopen
-
+from sys import argv
+from pyrogram import idle, Client
 from telegram import Message, Chat, Update, Bot, User
 from telegram import ParseMode, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.error import Unauthorized, BadRequest, TimedOut, NetworkError, ChatMigrated, TelegramError
@@ -14,7 +15,7 @@ from telegram.ext.dispatcher import run_async, DispatcherHandlerStop
 from telegram.utils.helpers import escape_markdown
 
 from tg_bot import dispatcher, updater, TOKEN, WEBHOOK, OWNER_ID, CERT_PATH, PORT, URL, LOGGER, \
-    ALLOW_EXCL
+    ALLOW_EXCL,oko,pbot
 # needed to dynamically load modules
 # NOTE: Module order is not guaranteed, specify that in the config file!
 from tg_bot.modules import ALL_MODULES
@@ -26,33 +27,21 @@ from tg_bot.modules.helper_funcs.misc import paginate_modules
 
 
 PM_START_TEXT = """
-
-
-┈┈┈┈╱▔▔▔▔╲┈┈┈┈
-┈┈┈▕▕╲┊┊╱▏▏┈┈┈
-┈┈┈▕▕▂╱╲▂▏▏┈┈┈
-┈┈┈┈╲┊┊┊┊╱┈┈┈┈
-┈┈┈┈▕╲▂▂╱▏┈┈┈┈
-╱▔▔▔▔┊┊┊┊▔▔▔▔╲
-HOI    {}, MY NAME IS {} !
-
-I AM A GROUP MANAGER BOT MAINTAINED BY 
-
-[THIS LEGEND](tg://user?id={}).
-
-HIT HELP FOR COMMANDS  /help
-
-I AM COMPLETELY OPEN SOURCE
-
-MY SOURCE CODE IS AVAILABLE TO YOU
-
-[HERE](https://github.com/leobrownlee/phantom)
+Hi {}, My name is {} ! 
+"I'm a part of the Fate Union and can easily manage your groups."
+𝓘 𝓪𝓶 𝒜𝓇𝓉𝑜𝓇𝒾𝒶 𝒫𝑒𝓃𝒹𝓇𝒶𝑔𝑜𝓃 𝓽𝓱𝓮 𝓼𝔀𝓸𝓻𝓭 𝓱𝓮𝓻𝓸  𝓸𝓷𝓮 𝓸𝓯 𝓽𝓱𝓮 𝓗𝓮𝓻𝓸 𝓸𝓯 𝓱𝓸𝓵𝔂 𝓰𝓻𝓪𝓲𝓵 𝔀𝓪𝓻 𝓘 𝓪𝓶 𝓼𝓾𝓶𝓶𝓸𝓷𝓮𝓭 𝓫𝔂 𝓶𝔂 𝓶𝓪𝓼𝓽𝓮𝓻 𝓽𝓸 𝓱𝓮𝓵𝓹 𝓱𝓲𝓶
+I HOPE I'LL BE ABLE TO MAINTAIN YOUR GROUP!
+Click on the help button below to get help supported module.
 
 """
 
+
+BOT_IMG = "https://telegra.ph/file/98cb413468829dc59a74c.mp4"
+
+
 HELP_STRINGS = """
 
-Hello! my name *{}*.
+Hey There! My name is *{}*.
 
 *Main* commands available:
  - /start: start the bot
@@ -61,11 +50,10 @@ Hello! my name *{}*.
  - /settings:
    - in PM: will send you your settings for all supported modules.
    - in a group: will redirect you to pm, with all that chat's settings.
-
-
 {}
 And the following:
 """.format(dispatcher.bot.first_name, "" if not ALLOW_EXCL else "\nAll commands can either be used with / or !.\n")
+
 
 
 IMPORTED = {}
@@ -154,14 +142,34 @@ def start(bot: Bot, update: Update, args: List[str]):
 
         else:
             first_name = update.effective_user.first_name
-            update.effective_message.reply_text(
-                PM_START_TEXT.format(escape_markdown(first_name), escape_markdown(bot.first_name), OWNER_ID),
-                parse_mode=ParseMode.MARKDOWN, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="ADD ME TO YOUR GROUP",
-                                                                       url="t.me/{}?startgroup=true".format(bot.username))]]))
+            update.effective_message.reply_animation(
+                BOT_IMG,
+                caption=PM_START_TEXT.format(escape_markdown(first_name), escape_markdown(bot.first_name), OWNER_ID),
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=InlineKeyboardMarkup(
+                    [[
+                        InlineKeyboardButton(
+                            text="Add saber to your group",
+                            url="t.me/{}?startgroup=true".format(bot.username))
+                    ],
+                    [
+                        InlineKeyboardButton(
+                            text="Support Chat ",
+                            url=f"https://t.me/fateUnion"),
+                        InlineKeyboardButton(
+                            text="Updates ",
+                            url="https://t.me/fateunionupdates")
+                    ],
+                    [
+                        InlineKeyboardButton(
+                            text="help",
+                            callback_data="help_back")
+                    ]]))
+                                                                 
 
 
     else:
-        update.effective_message.reply_text("Yo, whadup?🤧")
+        update.effective_message.reply_text("HI, Why u summoned me")
 
 
 def send_start(bot, update):
@@ -276,71 +284,6 @@ def get_help(bot: Bot, update: Update):
     else:
         send_help(chat.id, HELP_STRINGS)
 
-def imdb_searchdata(bot: Bot, update: Update):
-    query_raw = update.callback_query
-    query = query_raw.data.split('$')
-    print(query)
-    if query[1] != query_raw.from_user.username:
-        return
-    title = ''
-    rating = ''
-    date = ''
-    synopsis = ''
-    url_sel = 'https://www.imdb.com/title/%s/' % (query[0])
-    text_sel = requests.get(url_sel).text
-    selector_global = Selector(text = text_sel)
-    title = selector_global.xpath('//div[@class="title_wrapper"]/h1/text()').get().strip()
-    try:
-        rating = selector_global.xpath('//div[@class="ratingValue"]/strong/span/text()').get().strip()
-    except:
-        rating = '-'
-    try:
-        date = '(' + selector_global.xpath('//div[@class="title_wrapper"]/h1/span/a/text()').getall()[-1].strip() + ')'
-    except:
-        date = selector_global.xpath('//div[@class="subtext"]/a/text()').getall()[-1].strip()
-    try:
-        synopsis_list = selector_global.xpath('//div[@class="summary_text"]/text()').getall()
-        synopsis = re.sub(' +',' ', re.sub(r'\([^)]*\)', '', ''.join(sentence.strip() for sentence in synopsis_list)))
-    except:
-        synopsis = '_No synopsis available._'
-    movie_data = '*%s*, _%s_\n★ *%s*\n\n%s' % (title, date, rating, synopsis)
-    query_raw.edit_message_text(
-        movie_data, 
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-@run_async
-def imdb(bot: Bot, update: Update, args):
-    message = update.effective_message
-    query = ''.join([arg + '_' for arg in args]).lower()
-    if not query:
-        bot.send_message(
-            message.chat.id,
-            'You need to specify a movie/show name!'
-        )
-        return
-    url_suggs = 'https://v2.sg.media-imdb.com/suggests/%s/%s.json' % (query[0], query)
-    json_url = urlopen(url_suggs)
-    suggs_raw = ''
-    for line in json_url:
-        suggs_raw = line
-    skip_chars = 6 + len(query)
-    suggs_dict = json.loads(suggs_raw[skip_chars:][:-1])
-    if suggs_dict:
-        button_list = [[
-                InlineKeyboardButton(
-                    text = str(sugg['l'] + ' (' + str(sugg['y']) + ')'), 
-                    callback_data = str(sugg['id']) + '$' + str(message.from_user.username)
-                )] for sugg in suggs_dict['d'] if 'y' in sugg
-        ]
-        reply_markup = InlineKeyboardMarkup(button_list)
-        bot.send_message(
-            message.chat.id,
-            'Which one? ',
-            reply_markup = reply_markup
-        )
-    else:
-        pass
 
 
 def send_settings(chat_id, user_id, user=False):
@@ -476,6 +419,104 @@ def migrate_chats(bot: Bot, update: Update):
     LOGGER.info("Successfully migrated!")
     raise DispatcherHandlerStop
 
+@run_async
+def imdb_searchdata(bot: Bot, update: Update):
+    query_raw = update.callback_query
+    query = query_raw.data.split('$')
+    print(query)
+    if query[1] != query_raw.from_user.username:
+        return
+    title = ''
+    rating = ''
+    date = ''
+    synopsis = ''
+    url_sel = 'https://www.imdb.com/title/%s/' % (query[0])
+    text_sel = requests.get(url_sel).text
+    selector_global = Selector(text = text_sel)
+    title = selector_global.xpath('//div[@class="title_wrapper"]/h1/text()').get().strip()
+    try:
+        rating = selector_global.xpath('//div[@class="ratingValue"]/strong/span/text()').get().strip()
+    except:
+        rating = '-'
+    try:
+        date = '(' + selector_global.xpath('//div[@class="title_wrapper"]/h1/span/a/text()').getall()[-1].strip() + ')'
+    except:
+        date = selector_global.xpath('//div[@class="subtext"]/a/text()').getall()[-1].strip()
+    try:
+        synopsis_list = selector_global.xpath('//div[@class="summary_text"]/text()').getall()
+        synopsis = re.sub(' +',' ', re.sub(r'\([^)]*\)', '', ''.join(sentence.strip() for sentence in synopsis_list)))
+    except:
+        synopsis = '_No synopsis available._'
+    movie_data = '*%s*, _%s_\n★ *%s*\n\n%s' % (title, date, rating, synopsis)
+    query_raw.edit_message_text(
+        movie_data, 
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+@run_async
+def imdb(bot: Bot, update: Update, args):
+    message = update.effective_message
+    query = ''.join([arg + '_' for arg in args]).lower()
+    if not query:
+        bot.send_message(
+            message.chat.id,
+            'You need to specify a movie/show name!'
+        )
+        return
+    url_suggs = 'https://v2.sg.media-imdb.com/suggests/%s/%s.json' % (query[0], query)
+    json_url = urlopen(url_suggs)
+    suggs_raw = ''
+    for line in json_url:
+        suggs_raw = line
+    skip_chars = 6 + len(query)
+    suggs_dict = json.loads(suggs_raw[skip_chars:][:-1])
+    if suggs_dict:
+        button_list = [[
+                InlineKeyboardButton(
+                    text = str(sugg['l'] + ' (' + str(sugg['y']) + ')'), 
+                    callback_data = str(sugg['id']) + '$' + str(message.from_user.username)
+                )] for sugg in suggs_dict['d'] if 'y' in sugg
+        ]
+        reply_markup = InlineKeyboardMarkup(button_list)
+        bot.send_message(
+            message.chat.id,
+            'Which one? ',
+            reply_markup = reply_markup
+        )
+    else:
+        pass             
+            
+# Avoid memory dead
+def memory_limit(percentage: float):
+    if platform.system() != "Linux":
+        print('Only works on linux!')
+        return
+    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    resource.setrlimit(resource.RLIMIT_AS, (int(get_memory() * 1024 * percentage), hard))
+
+def get_memory():
+    with open('/proc/meminfo', 'r') as mem:
+        free_memory = 0
+        for i in mem:
+            sline = i.split()
+            if str(sline[0]) in ('MemFree:', 'Buffers:', 'Cached:'):
+                free_memory += int(sline[1])
+    return free_memory
+
+def memory(percentage=0.5):
+    def decorator(function):
+        def wrapper(*args, **kwargs):
+            memory_limit(percentage)
+            try:
+                function(*args, **kwargs)
+            except MemoryError:
+                mem = get_memory() / 1024 /1024
+                print('Remain: %.2f GB' % mem)
+                sys.stderr.write('\n\nERROR: Memory Exception\n')
+                sys.exit(1)
+        return wrapper
+    return decorator
+            
 
 def main():
     test_handler = CommandHandler("test", test)
@@ -483,12 +524,12 @@ def main():
 
     start_callback_handler = CallbackQueryHandler(send_start, pattern=r"bot_start")
     
+    IMDB_HANDLER = CommandHandler('imdb', imdb, pass_args=True)
+    IMDB_SEARCHDATAHANDLER = CallbackQueryHandler(imdb_searchdata)
 
     help_handler = CommandHandler("help", get_help)
     help_callback_handler = CallbackQueryHandler(help_button, pattern=r"help_")
     
-    IMDB_HANDLER = CommandHandler("imdb", imdb, pass_args=True)
-    IMDB_SEARCHDATA_HANDLER = CallbackQueryHandler(imdb_searchdata)
     settings_handler = CommandHandler("settings", get_settings)
     settings_callback_handler = CallbackQueryHandler(settings_button, pattern=r"stngs_")
 
@@ -504,8 +545,9 @@ def main():
     dispatcher.add_handler(migrate_handler)
     dispatcher.add_handler(start_callback_handler)
     dispatcher.add_handler(IMDB_HANDLER)
-    dispatcher.add_handler(IMDB_SEARCHDATA_HANDLER)
+    dispatcher.add_handler(IMDB_SEARCHDATAHANDLER)
     # dispatcher.add_error_handler(error_callback)
+    
 
     if WEBHOOK:
         LOGGER.info("Using webhooks.")
@@ -518,14 +560,22 @@ def main():
                                     certificate=open(CERT_PATH, 'rb'))
         else:
             updater.bot.set_webhook(url=URL + TOKEN)
-
+            
     else:
-        LOGGER.info("Using long polling.")
+        LOGGER.info("saber is working ......")
         updater.start_polling(timeout=15, read_latency=4)
+        
+    if len(argv) not in (1, 3, 4):
+        oko.disconnect()
+    else:
+        oko.run_until_disconnected()
 
     updater.idle()
 
-
 if __name__ == '__main__':
     LOGGER.info("Successfully loaded modules: " + str(ALL_MODULES))
+    oko.start(bot_token=TOKEN)
+    pbot.start()
     main()
+    idle()
+    LOGGER.info("Successfully loaded") 
