@@ -23,7 +23,7 @@ from tg_bot.modules.disable import DisableAbleCommandHandler
 from tg_bot.modules.helper_funcs.chat_status import is_user_admin
 from tg_bot.modules.helper_funcs.misc import paginate_modules
 
-tg_bot_imge = https://telegra.ph/file/43dbb113e4431ebc283f4.jpg
+
 
 PM_START_TEXT = """
 
