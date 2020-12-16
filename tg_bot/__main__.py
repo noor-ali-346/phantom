@@ -50,6 +50,10 @@ MY SOURCE CODE IS AVAILABLE TO YOU
 
 """
 
+
+BOT_IMGE = https://telegra.ph/file/43dbb113e4431ebc283f4.jpg
+
+
 HELP_STRINGS = """
 
 Hello! my name *{}*.
